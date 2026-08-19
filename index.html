@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Share Your Photos</title>
+<style>
+  :root{
+    --bg:#faf6f2; --card:#fff; --ink:#3a2f2a; --muted:#8a7b72;
+    --accent:#b98b73; --accent-dark:#9c6f58; --ok:#5a8a63; --err:#c0564a;
+    --border:#e8ddd4;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:Georgia,'Times New Roman',serif; background:var(--bg); color:var(--ink);
+    display:flex; justify-content:center; padding:40px 16px;
+  }
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    max-width:520px; width:100%; padding:36px 32px; box-shadow:0 4px 24px rgba(0,0,0,.05);
+  }
+  h1{font-size:1.6rem; margin:0 0 4px; text-align:center; font-weight:normal; letter-spacing:.5px}
+  p.sub{text-align:center; color:var(--muted); margin:0 0 28px; font-size:.95rem}
+  label{display:block; font-size:.85rem; color:var(--muted); margin-bottom:6px}
+  input[type=text]{
+    width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px;
+    font-family:inherit; font-size:1rem; margin-bottom:20px;
+  }
+  .drop{
+    border:2px dashed var(--border); border-radius:10px; padding:28px 16px; text-align:center;
+    color:var(--muted); cursor:pointer; margin-bottom:20px; transition:.15s;
+  }
+  .drop.drag{border-color:var(--accent); background:#fbf3ee}
+  .drop input{display:none}
+  button{
+    width:100%; padding:13px; background:var(--accent); color:#fff; border:none; border-radius:8px;
+    font-size:1rem; font-family:inherit; cursor:pointer; transition:.15s;
+  }
+  button:hover{background:var(--accent-dark)}
+  button:disabled{background:#ccc; cursor:not-allowed}
+  ul.files{list-style:none; padding:0; margin:0 0 20px}
+  ul.files li{
+    display:flex; justify-content:space-between; align-items:center; padding:8px 0;
+    border-bottom:1px solid var(--border); font-size:.9rem;
+  }
+  ul.files li:last-child{border-bottom:none}
+  .status{font-size:.8rem}
+  .status.pending{color:var(--muted)}
+  .status.ok{color:var(--ok)}
+  .status.err{color:var(--err)}
+  .msg{text-align:center; margin-top:18px; font-size:.9rem; color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>❤ Share Your Photos</h1>
+  <p class="sub">Upload your pictures from the wedding — they'll land straight in our shared album.</p>
+
+  <label for="guestName">Your name</label>
+  <input type="text" id="guestName" placeholder="e.g. Aunt Maria">
+
+  <label>Photos / videos</label>
+  <div class="drop" id="drop">
+    Tap to choose files or drag them here
+    <input type="file" id="fileInput" multiple accept="image/*,video/*">
+  </div>
+
+  <ul class="files" id="fileList"></ul>
+
+  <button id="uploadBtn" disabled>Upload</button>
+  <div class="msg" id="msg"></div>
+</div>
+
+<script>
+// Fill in after deploying the Apps Script web app (Deploy > New deployment > Web app > copy URL)
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzLZH38X83eqsPZnz2SByfbmhK96lCQ63g9rbF7lFPQtO_YGIZ1Reyg8uL3jXe9P_NioQ/exec';
+
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const fileListEl = document.getElementById('fileList');
+const uploadBtn = document.getElementById('uploadBtn');
+const guestNameEl = document.getElementById('guestName');
+const msgEl = document.getElementById('msg');
+
+let selectedFiles = [];
+
+drop.addEventListener('click', () => fileInput.click());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('drag');
+  addFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => addFiles(fileInput.files));
+
+function addFiles(fileListObj) {
+  for (const f of fileListObj) selectedFiles.push(f);
+  renderList();
+}
+
+function renderList() {
+  fileListEl.innerHTML = '';
+  selectedFiles.forEach((f, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${f.name}</span><span class="status pending" id="status-${i}">waiting</span>`;
+    fileListEl.appendChild(li);
+  });
+  uploadBtn.disabled = selectedFiles.length === 0;
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+uploadBtn.addEventListener('click', async () => {
+  if (SCRIPT_URL.includes('PASTE_YOUR')) {
+    msgEl.textContent = 'Setup incomplete: SCRIPT_URL not set in index.html';
+    return;
+  }
+  uploadBtn.disabled = true;
+  msgEl.textContent = 'Uploading...';
+  const guestName = guestNameEl.value.trim();
+
+  for (let i = 0; i < selectedFiles.length; i++) {
+    const file = selectedFiles[i];
+    const statusEl = document.getElementById(`status-${i}`);
+    statusEl.textContent = 'uploading...';
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
+        body: JSON.stringify({
+          guestName,
+          fileName: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          fileData: base64
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        statusEl.textContent = 'done';
+        statusEl.className = 'status ok';
+      } else {
+        throw new Error(json.error || 'upload failed');
+      }
+    } catch (err) {
+      statusEl.textContent = 'failed';
+      statusEl.className = 'status err';
+    }
+  }
+
+  msgEl.textContent = 'All uploads finished. Thank you!';
+  uploadBtn.disabled = false;
+  selectedFiles = [];
+});
+</script>
+</body>
+</html>
