@@ -2,164 +2,722 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Share Your Photos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16120f">
+<title>Leave us a photo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..700,0..100,0..1;1,9..144,400..700,0..100,0..1&family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
   :root{
-    --bg:#faf6f2; --card:#fff; --ink:#3a2f2a; --muted:#8a7b72;
-    --accent:#b98b73; --accent-dark:#9c6f58; --ok:#5a8a63; --err:#c0564a;
-    --border:#e8ddd4;
+    --ink:#16120f;          /* ground */
+    --ink-lift:#211a16;     /* raised surfaces */
+    --ink-sink:#0e0b09;     /* wells, inputs */
+    --edge:#382e27;         /* hairlines */
+    --edge-lit:#54443a;
+    --paper:#f4ece1;        /* high-emphasis text */
+    --dim:#9c8a7c;          /* secondary text */
+    --safelight:#e8a33d;    /* the one accent */
+    --err:#e0705c;
+
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --mono:'DM Mono',ui-monospace,'SF Mono',Menlo,monospace;
+
+    --r:10px;
   }
+
   *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
   body{
-    margin:0; font-family:Georgia,'Times New Roman',serif; background:var(--bg); color:var(--ink);
-    display:flex; justify-content:center; padding:40px 16px;
+    margin:0;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.5;
+    /* one low safelight in the corner, so the dark isn't flat */
+    background-image:radial-gradient(120% 80% at 100% 0%, rgba(232,163,61,.09), transparent 60%);
+    background-attachment:fixed;
+    min-height:100vh;
   }
-  .card{
-    background:var(--card); border:1px solid var(--border); border-radius:14px;
-    max-width:520px; width:100%; padding:36px 32px; box-shadow:0 4px 24px rgba(0,0,0,.05);
+
+  .wrap{
+    max-width:620px;
+    margin:0 auto;
+    padding:48px 20px 56px;
   }
-  h1{font-size:1.6rem; margin:0 0 4px; text-align:center; font-weight:normal; letter-spacing:.5px}
-  p.sub{text-align:center; color:var(--muted); margin:0 0 28px; font-size:.95rem}
-  label{display:block; font-size:.85rem; color:var(--muted); margin-bottom:6px}
+  /* the action bar only exists once there is something to send */
+  body.staged .wrap{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+
+  /* ---------- masthead ---------- */
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:.7rem;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--safelight);
+    margin:0 0 20px;
+  }
+  h1{
+    font-family:var(--serif);
+    font-variation-settings:'opsz' 96,'SOFT' 40,'WONK' 1;
+    font-weight:500;
+    font-size:clamp(2.1rem,8vw,3.1rem);
+    line-height:1.04;
+    letter-spacing:-.02em;
+    margin:0 0 14px;
+  }
+  h1 em{
+    font-style:italic;
+    font-variation-settings:'opsz' 96,'SOFT' 70,'WONK' 1;
+    color:var(--safelight);
+  }
+  .lede{
+    color:var(--dim);
+    font-size:1.02rem;
+    margin:0 0 40px;
+    max-width:42ch;
+  }
+
+  /* ---------- fields ---------- */
+  .field{margin-bottom:26px}
+  label{
+    display:block;
+    font-family:var(--mono);
+    font-size:.7rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--dim);
+    margin-bottom:9px;
+  }
+  .hint{
+    font-size:.85rem;
+    color:var(--dim);
+    margin:8px 0 0;
+  }
   input[type=text]{
-    width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px;
-    font-family:inherit; font-size:1rem; margin-bottom:20px;
+    width:100%;
+    padding:14px 16px;
+    background:var(--ink-sink);
+    border:1px solid var(--edge);
+    border-radius:var(--r);
+    color:var(--paper);
+    font-family:var(--sans);
+    font-size:1rem;
+    transition:border-color .15s,background .15s;
   }
+  input[type=text]::placeholder{color:#6d5e53}
+  input[type=text]:hover{border-color:var(--edge-lit)}
+  input[type=text]:focus{outline:none;border-color:var(--safelight);background:#120e0b}
+
+  /* ---------- drop zone ---------- */
   .drop{
-    border:2px dashed var(--border); border-radius:10px; padding:28px 16px; text-align:center;
-    color:var(--muted); cursor:pointer; margin-bottom:20px; transition:.15s;
+    display:block;
+    width:100%;
+    border:1px dashed var(--edge-lit);
+    border-radius:var(--r);
+    background:var(--ink-lift);
+    color:var(--paper);
+    padding:34px 20px;
+    text-align:center;
+    cursor:pointer;
+    font-family:var(--sans);
+    font-size:1rem;
+    transition:border-color .15s,background .15s,transform .1s;
   }
-  .drop.drag{border-color:var(--accent); background:#fbf3ee}
-  .drop input{display:none}
-  button{
-    width:100%; padding:13px; background:var(--accent); color:#fff; border:none; border-radius:8px;
-    font-size:1rem; font-family:inherit; cursor:pointer; transition:.15s;
+  .drop:hover{border-color:var(--safelight);background:#28201a}
+  .drop:active{transform:scale(.994)}
+  .drop.drag{border-color:var(--safelight);background:#2c231b;border-style:solid}
+  .drop .aperture{
+    display:block;
+    width:30px;height:30px;
+    margin:0 auto 12px;
+    border:1.5px solid var(--safelight);
+    border-radius:50%;
+    position:relative;
   }
-  button:hover{background:var(--accent-dark)}
-  button:disabled{background:#ccc; cursor:not-allowed}
-  ul.files{list-style:none; padding:0; margin:0 0 20px}
-  ul.files li{
-    display:flex; justify-content:space-between; align-items:center; padding:8px 0;
-    border-bottom:1px solid var(--border); font-size:.9rem;
+  .drop .aperture::after{
+    content:'';position:absolute;inset:6px;
+    border-radius:50%;
+    background:var(--safelight);
+    opacity:.28;
   }
-  ul.files li:last-child{border-bottom:none}
-  .status{font-size:.8rem}
-  .status.pending{color:var(--muted)}
-  .status.ok{color:var(--ok)}
-  .status.err{color:var(--err)}
-  .msg{text-align:center; margin-top:18px; font-size:.9rem; color:var(--muted)}
+  .drop b{font-weight:600;display:block}
+  .drop span.sub{display:block;color:var(--dim);font-size:.86rem;margin-top:4px}
+  .drop:focus-visible{outline:2px solid var(--safelight);outline-offset:3px}
+  /* once the sheet has photos on it, the picker steps back */
+  .drop.compact{padding:14px 20px}
+  .drop.compact .aperture,.drop.compact .sub{display:none}
+  .drop.compact b{font-weight:500;font-size:.92rem;color:var(--dim)}
+  #fileInput{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+  /* ---------- contact sheet ---------- */
+  .sheet{margin-top:34px}
+  .sheet[hidden]{display:none}
+  .rail{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    font-family:var(--mono);
+    font-size:.7rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--dim);
+    padding-bottom:10px;
+    margin-bottom:14px;
+    border-bottom:1px solid var(--edge);
+  }
+  .rail .count{color:var(--paper);letter-spacing:.08em}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(92px,1fr));
+    gap:10px;
+    list-style:none;
+    margin:0;padding:0;
+  }
+
+  .tile{
+    position:relative;
+    aspect-ratio:1;
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--ink-sink);
+    border:1px solid var(--edge);
+  }
+  .tile img,.tile .ph{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  /* undeveloped layer */
+  .tile .base{filter:grayscale(1) brightness(.42)}
+  /* developed layer, revealed bottom-up as the file goes up */
+  .tile .lit{
+    clip-path:inset(100% 0 0 0);
+    transition:clip-path .25s linear;
+  }
+  .tile .ph{
+    display:grid;place-items:center;
+    color:var(--edge-lit);
+    font-family:var(--mono);
+    font-size:1.5rem;
+  }
+
+  .tile .frame{
+    position:absolute;top:5px;left:6px;
+    font-family:var(--mono);
+    font-size:.62rem;
+    color:var(--paper);
+    text-shadow:0 1px 3px rgba(0,0,0,.9);
+    letter-spacing:.05em;
+  }
+  .tile .bar{
+    position:absolute;left:0;right:0;bottom:0;
+    height:3px;
+    background:rgba(0,0,0,.5);
+  }
+  .tile .bar i{
+    display:block;height:100%;width:0;
+    background:var(--safelight);
+    transition:width .25s linear;
+  }
+  .tile.done .bar{display:none}
+
+  .tile .x{
+    position:absolute;top:4px;right:4px;
+    width:24px;height:24px;
+    border:none;border-radius:50%;
+    background:rgba(14,11,9,.78);
+    color:var(--paper);
+    font-size:14px;line-height:1;
+    cursor:pointer;
+    display:grid;place-items:center;
+    transition:background .15s;
+  }
+  .tile .x:hover{background:var(--err);color:#fff}
+  .tile .x:focus-visible{outline:2px solid var(--safelight);outline-offset:1px}
+  .tile.done .x,.tile.sending .x{display:none}
+
+  .tile .badge{
+    position:absolute;right:5px;bottom:5px;
+    width:19px;height:19px;border-radius:50%;
+    display:none;place-items:center;
+    font-size:11px;line-height:1;
+    background:var(--safelight);color:var(--ink);
+    box-shadow:0 1px 4px rgba(0,0,0,.6);
+  }
+  .tile.done .badge{display:grid}
+
+  .tile.failed{border-color:var(--err)}
+  .tile.failed .base{filter:grayscale(1) brightness(.28)}
+  .tile .retry{
+    position:absolute;left:0;right:0;bottom:0;
+    display:none;
+    width:100%;padding:5px 4px;
+    border:none;
+    background:var(--err);color:#fff;
+    font-family:var(--mono);font-size:.62rem;
+    letter-spacing:.08em;text-transform:uppercase;
+    cursor:pointer;
+  }
+  .tile.failed .retry{display:block}
+  .tile.failed .x{display:none}
+
+  .too-big{
+    grid-column:1/-1;
+    font-size:.85rem;
+    color:var(--err);
+    font-family:var(--sans);
+    margin:0;
+  }
+
+  /* ---------- action bar ---------- */
+  .actions{
+    position:fixed;
+    left:0;right:0;bottom:0;
+    padding:16px 20px calc(16px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top,var(--ink) 62%,rgba(22,18,15,0));
+  }
+  .actions[hidden]{display:none}
+  .actions-inner{max-width:620px;margin:0 auto}
+  .totals{
+    display:flex;justify-content:space-between;gap:12px;
+    font-family:var(--mono);font-size:.68rem;
+    letter-spacing:.1em;text-transform:uppercase;
+    color:var(--dim);
+    margin:0 0 10px;
+    min-height:1em;
+  }
+  .totals .ok{color:var(--safelight)}
+  .totals .bad{color:var(--err)}
+
+  button.send{
+    width:100%;
+    padding:16px;
+    background:var(--safelight);
+    color:#1a1207;
+    border:none;border-radius:var(--r);
+    font-family:var(--sans);
+    font-size:1.02rem;font-weight:600;
+    cursor:pointer;
+    transition:background .15s,transform .1s;
+  }
+  button.send:hover:not(:disabled){background:#f2b357}
+  button.send:active:not(:disabled){transform:scale(.99)}
+  button.send:disabled{background:var(--ink-lift);color:#6d5e53;cursor:not-allowed}
+  button.send:focus-visible{outline:2px solid var(--paper);outline-offset:3px}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important}
+  }
 </style>
 </head>
 <body>
-<div class="card">
-  <h1>❤ Share Your Photos</h1>
-  <p class="sub">Upload your pictures from the wedding — they'll land straight in our shared album.</p>
 
-  <label for="guestName">Your name</label>
-  <input type="text" id="guestName" placeholder="e.g. Aunt Maria">
+<div class="wrap">
+  <!-- EDIT: your names and date -->
+  <p class="eyebrow">Our wedding · 2026</p>
 
-  <label>Photos / videos</label>
-  <div class="drop" id="drop">
-    Tap to choose files or drag them here
+  <h1>You saw things <em>we didn't.</em></h1>
+  <p class="lede">We were a little busy. Send us the photos and video from your camera roll — they go straight into our album.</p>
+
+  <div class="field">
+    <label for="guestName">Your name</label>
+    <input type="text" id="guestName" placeholder="Maria" autocomplete="name">
+    <p class="hint">So we know who to thank.</p>
+  </div>
+
+  <div class="field">
+    <label id="pickLabel">Photos and video</label>
+    <button type="button" class="drop" id="drop" aria-labelledby="pickLabel">
+      <span class="aperture" aria-hidden="true"></span>
+      <b>Add photos or video</b>
+      <span class="sub">Tap to choose, or drag them here</span>
+    </button>
     <input type="file" id="fileInput" multiple accept="image/*,video/*">
   </div>
 
-  <ul class="files" id="fileList"></ul>
+  <section class="sheet" id="sheet" hidden aria-labelledby="sheetLabel">
+    <div class="rail">
+      <span id="sheetLabel">Exposures</span>
+      <span class="count" id="count">00</span>
+    </div>
+    <ul class="grid" id="grid"></ul>
+  </section>
+</div>
 
-  <button id="uploadBtn" disabled>Upload</button>
-  <div class="msg" id="msg"></div>
+<div class="actions" id="actions" hidden>
+  <div class="actions-inner">
+    <p class="totals">
+      <span id="totalsLeft"></span>
+      <span id="totalsRight" role="status" aria-live="polite"></span>
+    </p>
+    <button class="send" id="sendBtn" disabled>Add photos to begin</button>
+  </div>
 </div>
 
 <script>
-// Fill in after deploying the Apps Script web app (Deploy > New deployment > Web app > copy URL)
+// Apps Script web app URL (Deploy > New deployment > Web app)
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzLZH38X83eqsPZnz2SByfbmhK96lCQ63g9rbF7lFPQtO_YGIZ1Reyg8uL3jXe9P_NioQ/exec';
 
-const drop = document.getElementById('drop');
-const fileInput = document.getElementById('fileInput');
-const fileListEl = document.getElementById('fileList');
-const uploadBtn = document.getElementById('uploadBtn');
-const guestNameEl = document.getElementById('guestName');
-const msgEl = document.getElementById('msg');
+// Apps Script caps a request near 50MB and base64 inflates a file by ~33%,
+// so anything past this will not survive the trip.
+const MAX_MB = 32;
+// Two at a time: quicker than one, gentler on venue wifi than a dozen.
+const CONCURRENCY = 2;
 
-let selectedFiles = [];
+const $ = id => document.getElementById(id);
+const drop = $('drop'), fileInput = $('fileInput'), grid = $('grid'), sheet = $('sheet');
+const sendBtn = $('sendBtn'), guestNameEl = $('guestName'), actions = $('actions');
+const dropLabel = drop.querySelector('b');
+const countEl = $('count'), totalsLeft = $('totalsLeft'), totalsRight = $('totalsRight');
+
+let items = [];   // {id, file, status, progress, tries, thumbUrl, el, refs}
+let nextId = 1;
+let sending = false;
+let sendMode = 'busy';   // what the one big button does right now
+
+/* ---------- picking ---------- */
 
 drop.addEventListener('click', () => fileInput.click());
-drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
-drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
-drop.addEventListener('drop', e => {
+fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+
+['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => {
+  e.preventDefault();
+  drop.classList.add('drag');
+}));
+['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => {
   e.preventDefault();
   drop.classList.remove('drag');
-  addFiles(e.dataTransfer.files);
-});
-fileInput.addEventListener('change', () => addFiles(fileInput.files));
+}));
+drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
 
-function addFiles(fileListObj) {
-  for (const f of fileListObj) selectedFiles.push(f);
-  renderList();
-}
-
-function renderList() {
-  fileListEl.innerHTML = '';
-  selectedFiles.forEach((f, i) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span>${f.name}</span><span class="status pending" id="status-${i}">waiting</span>`;
-    fileListEl.appendChild(li);
-  });
-  uploadBtn.disabled = selectedFiles.length === 0;
-}
-
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-uploadBtn.addEventListener('click', async () => {
-  if (SCRIPT_URL.includes('PASTE_YOUR')) {
-    msgEl.textContent = 'Setup incomplete: SCRIPT_URL not set in index.html';
-    return;
+function addFiles(list) {
+  const rejected = [];
+  for (const file of list) {
+    if (file.size > MAX_MB * 1024 * 1024) { rejected.push(file.name); continue; }
+    // same name and size twice means the picker was opened twice, not two photos
+    if (items.some(i => i.file.name === file.name && i.file.size === file.size)) continue;
+    const item = { id: nextId++, file, status: 'queued', progress: 0, tries: 0 };
+    items.push(item);
+    buildTile(item);
   }
-  uploadBtn.disabled = true;
-  msgEl.textContent = 'Uploading...';
-  const guestName = guestNameEl.value.trim();
+  if (rejected.length) showTooBig(rejected);
+  refresh();
+}
 
-  for (let i = 0; i < selectedFiles.length; i++) {
-    const file = selectedFiles[i];
-    const statusEl = document.getElementById(`status-${i}`);
-    statusEl.textContent = 'uploading...';
-    try {
-      const base64 = await fileToBase64(file);
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
-        body: JSON.stringify({
-          guestName,
-          fileName: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          fileData: base64
-        })
-      });
-      const json = await res.json();
-      if (json.success) {
-        statusEl.textContent = 'done';
-        statusEl.className = 'status ok';
-      } else {
-        throw new Error(json.error || 'upload failed');
-      }
-    } catch (err) {
-      statusEl.textContent = 'failed';
-      statusEl.className = 'status err';
+function showTooBig(names) {
+  let p = grid.querySelector('.too-big');
+  if (!p) { p = document.createElement('li'); p.className = 'too-big'; grid.appendChild(p); }
+  p.textContent = names.length === 1
+    ? `${names[0]} is over ${MAX_MB}MB and can't be sent. Send that one to us another way.`
+    : `${names.length} files are over ${MAX_MB}MB and can't be sent. Send those to us another way.`;
+}
+
+/* ---------- tiles ---------- */
+
+function buildTile(item) {
+  const li = document.createElement('li');
+  li.className = 'tile';
+
+  const base = document.createElement('img'); base.className = 'base'; base.alt = '';
+  const lit = document.createElement('img'); lit.className = 'lit'; lit.alt = '';
+  const frame = document.createElement('span'); frame.className = 'frame';
+
+  const bar = document.createElement('div');
+  bar.className = 'bar';
+  bar.setAttribute('role', 'progressbar');
+  bar.setAttribute('aria-valuemin', '0');
+  bar.setAttribute('aria-valuemax', '100');
+  bar.setAttribute('aria-valuenow', '0');
+  const fill = document.createElement('i');
+  bar.appendChild(fill);
+
+  const badge = document.createElement('span');
+  badge.className = 'badge';
+  badge.textContent = '✓';
+  badge.setAttribute('aria-hidden', 'true');
+
+  const x = document.createElement('button');
+  x.type = 'button';
+  x.className = 'x';
+  x.textContent = '×';
+  x.setAttribute('aria-label', `Remove ${item.file.name}`);
+  x.addEventListener('click', () => removeItem(item));
+
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'retry';
+  retry.textContent = 'Retry';
+  retry.addEventListener('click', () => {
+    item.status = 'queued';
+    item.tries = 0;
+    item.progress = 0;
+    paint(item);
+    refresh();
+    run();
+  });
+
+  li.append(base, lit, frame, bar, badge, x, retry);
+
+  // keep the oversize notice at the end of the sheet
+  const notice = grid.querySelector('.too-big');
+  notice ? grid.insertBefore(li, notice) : grid.appendChild(li);
+
+  item.el = li;
+  item.refs = { base, lit, frame, bar, fill };
+  li.setAttribute('aria-label', item.file.name);
+
+  makeThumb(item.file).then(url => {
+    if (!url) {
+      base.remove();
+      lit.remove();
+      const ph = document.createElement('span');
+      ph.className = 'ph';
+      ph.textContent = item.file.type.startsWith('video') ? '▶' : '▨';
+      li.prepend(ph);
+      item.refs.lit = null;
+      return;
+    }
+    item.thumbUrl = url;
+    base.src = url;
+    lit.src = url;
+  });
+}
+
+function makeThumb(file) {
+  if (file.type.startsWith('image/')) return Promise.resolve(URL.createObjectURL(file));
+  if (file.type.startsWith('video/')) return videoThumb(file);
+  return Promise.resolve(null);
+}
+
+// grab a frame a moment in, so the poster isn't a black first frame
+function videoThumb(file) {
+  return new Promise(resolve => {
+    const src = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    let settled = false;
+    const done = url => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(src);
+      resolve(url);
+    };
+
+    v.preload = 'metadata';
+    v.muted = true;
+    v.playsInline = true;
+    v.src = src;
+    v.addEventListener('loadeddata', () => { v.currentTime = Math.min(0.5, (v.duration || 2) / 4); });
+    v.addEventListener('seeked', () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = 200;
+        c.height = Math.round(200 * (v.videoHeight / v.videoWidth)) || 200;
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        c.toBlob(b => done(b ? URL.createObjectURL(b) : null), 'image/jpeg', 0.8);
+      } catch (e) { done(null); }
+    });
+    v.addEventListener('error', () => done(null));
+    setTimeout(() => done(null), 5000);
+  });
+}
+
+function removeItem(item) {
+  if (item.thumbUrl) URL.revokeObjectURL(item.thumbUrl);
+  item.el.remove();
+  items = items.filter(i => i !== item);
+  refresh();
+}
+
+function paint(item) {
+  const { el, refs } = item;
+  const pct = Math.round(item.progress * 100);
+  el.classList.toggle('done', item.status === 'done');
+  el.classList.toggle('failed', item.status === 'failed');
+  el.classList.toggle('sending', item.status === 'sending');
+  refs.fill.style.width = pct + '%';
+  refs.bar.setAttribute('aria-valuenow', String(pct));
+  // a failed photo goes back to undeveloped, so half-filled never reads as half-sent
+  const shown = item.status === 'failed' ? 0 : pct;
+  if (refs.lit) refs.lit.style.clipPath = `inset(${100 - shown}% 0 0 0)`;
+
+  const state = item.status === 'done' ? 'sent'
+    : item.status === 'failed' ? "didn't send"
+    : item.status === 'sending' ? `${pct} percent sent`
+    : 'ready to send';
+  el.setAttribute('aria-label', `${item.file.name}, ${state}`);
+}
+
+/* ---------- chrome ---------- */
+
+function refresh() {
+  items.forEach((item, i) => { item.refs.frame.textContent = String(i + 1).padStart(2, '0'); });
+
+  const total = items.length;
+  const queued = items.filter(i => i.status === 'queued').length;
+  const done = items.filter(i => i.status === 'done').length;
+  const failed = items.filter(i => i.status === 'failed').length;
+
+  sheet.hidden = total === 0 && !grid.querySelector('.too-big');
+  actions.hidden = total === 0;
+  document.body.classList.toggle('staged', total > 0);
+  drop.classList.toggle('compact', total > 0);
+  countEl.textContent = String(total).padStart(2, '0');
+
+  const bytes = items.reduce((n, i) => n + i.file.size, 0);
+  totalsLeft.textContent = total ? `${total} file${total > 1 ? 's' : ''} · ${size(bytes)}` : '';
+
+  // one button, always showing the next thing worth doing
+  if (sending) {
+    sendMode = 'busy';
+    sendBtn.disabled = true;
+    sendBtn.textContent = `Sending… ${done} of ${total}`;
+  } else if (failed) {
+    sendMode = 'send';
+    sendBtn.disabled = false;
+    sendBtn.textContent = `Retry ${failed} photo${failed > 1 ? 's' : ''}`;
+  } else if (queued) {
+    sendMode = 'send';
+    sendBtn.disabled = false;
+    sendBtn.textContent = `Send ${queued} photo${queued > 1 ? 's' : ''}`;
+  } else if (done) {
+    sendMode = 'more';
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Add more photos';
+  } else {
+    sendMode = 'busy';
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Add photos to begin';
+  }
+
+  dropLabel.textContent = total ? 'Add more photos or video' : 'Add photos or video';
+
+  if (!sending) {
+    if (failed) {
+      totalsRight.className = 'bad';
+      totalsRight.textContent = `${failed} didn't send`;
+    } else if (done && !queued) {
+      totalsRight.className = 'ok';
+      totalsRight.textContent = 'In the album — thank you';
+    } else {
+      totalsRight.className = '';
+      totalsRight.textContent = '';
     }
   }
+}
 
-  msgEl.textContent = 'All uploads finished. Thank you!';
-  uploadBtn.disabled = false;
-  selectedFiles = [];
+function size(b) {
+  return b < 1048576
+    ? `${Math.max(1, Math.round(b / 1024))} KB`
+    : `${(b / 1048576).toFixed(1)} MB`;
+}
+
+/* ---------- sending ---------- */
+
+sendBtn.addEventListener('click', () => {
+  if (sendMode === 'more') { fileInput.click(); return; }
+  items.filter(i => i.status === 'failed').forEach(i => {
+    i.status = 'queued';
+    i.tries = 0;
+    i.progress = 0;
+    paint(i);
+  });
+  run();
 });
+
+async function run() {
+  if (sending) return;
+  const queue = items.filter(i => i.status === 'queued');
+  if (!queue.length) return;
+
+  sending = true;
+  refresh();
+
+  let cursor = 0;
+  const workers = Array.from(
+    { length: Math.min(CONCURRENCY, queue.length) },
+    async () => { while (cursor < queue.length) await send(queue[cursor++]); }
+  );
+  await Promise.all(workers);
+
+  sending = false;
+  refresh();
+}
+
+async function send(item) {
+  item.status = 'sending';
+  item.progress = 0;
+  paint(item);
+
+  try {
+    // reading the file is the first sliver of the bar, the upload is the rest
+    const base64 = await toBase64(item, p => { item.progress = p * 0.12; paint(item); });
+    await post(item, base64, p => { item.progress = 0.12 + p * 0.88; paint(item); });
+    item.status = 'done';
+    item.progress = 1;
+  } catch (err) {
+    item.tries++;
+    if (item.tries < 2) {          // one silent retry, venue wifi drops packets
+      item.status = 'queued';
+      return send(item);
+    }
+    item.status = 'failed';
+    item.error = err.message;
+  }
+  paint(item);
+  refresh();
+}
+
+function toBase64(item, onProgress) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = () => reject(new Error("Couldn't read the file"));
+    reader.readAsDataURL(item.file);
+  });
+}
+
+function post(item, base64, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', SCRIPT_URL, true);
+    // text/plain keeps this a simple request, so Apps Script never sees a CORS preflight
+    xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+    xhr.timeout = 240000;
+
+    xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    xhr.onload = () => {
+      let json;
+      try { json = JSON.parse(xhr.responseText); }
+      catch (e) { return reject(new Error('The album sent back something unreadable')); }
+      json.success ? resolve(json) : reject(new Error(json.error || 'The album refused the file'));
+    };
+    xhr.onerror = () => reject(new Error('Lost the connection'));
+    xhr.ontimeout = () => reject(new Error('Took too long'));
+
+    xhr.send(JSON.stringify({
+      guestName: guestNameEl.value.trim(),
+      fileName: item.file.name,
+      mimeType: item.file.type || 'application/octet-stream',
+      fileData: base64
+    }));
+  });
+}
+
+window.addEventListener('beforeunload', e => {
+  if (sending) { e.preventDefault(); e.returnValue = ''; }
+});
+
+if (SCRIPT_URL.includes('PASTE_YOUR')) {
+  totalsRight.className = 'bad';
+  totalsRight.textContent = 'SCRIPT_URL not set in index.html';
+}
 </script>
 </body>
 </html>

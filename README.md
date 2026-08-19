@@ -21,9 +21,14 @@ Static page → Google Apps Script → your Drive folder. No server, no cost.
 
 4. Test: open the page, pick a name + photo, upload, check Drive folder.
 
+5. **Make it yours**: edit the eyebrow line in `index.html` (marked `<!-- EDIT: your names and date -->`) and the headline below it.
+
 ## Notes
 
-- Each file uploads as its own request (no batching) — more reliable on flaky wedding wifi, and shows per-file status.
+- Each file uploads as its own request (no batching) — more reliable on flaky wedding wifi, and gives every photo its own progress bar. Two go up at a time.
+- Progress is real, not faked: uploads go through `XMLHttpRequest` so `upload.onprogress` is available. `fetch` can't report upload progress.
+- Each tile shows progress by filling in from the bottom — grey and dim means not sent yet, full colour with a check means it's in the album.
+- A failed file retries itself once, then offers a Retry button on the tile.
 - Guest name gets prefixed to uploaded filename so you know who sent what.
-- Apps Script free tier: 50MB/request soft limit, generous daily quota — plenty for a wedding.
+- Apps Script caps a request near 50MB and base64 inflates a file ~33%, so the page refuses anything over 32MB up front (`MAX_MB` in `index.html`).
 - Re-deploying the script after edits: Deploy → Manage deployments → edit → New version, or the URL changes.
