@@ -349,7 +349,7 @@
   <ol class="steps">
     <li><b>01</b> Напишете името си</li>
     <li><b>02</b> Изберете снимките от телефона си</li>
-    <li><b>03</b> Натиснете „Изпратете“ и изчакайте снимките да се оцветят</li>
+    <li><b>03</b> Натиснете „Изпратете“ и изчакайте снимките да се оцветят. Не заключвайте телефона.</li>
   </ol>
 
   <div class="field">
@@ -399,6 +399,8 @@ const MAX_MB = 95;
 const CONCURRENCY = 1;
 // Give up on a file only when the bytes actually stop moving.
 const STALL_MS = 90000;
+// Tile thumbnails are drawn this wide, never at the photo's real size.
+const THUMB_PX = 220;
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const uid = () => (crypto.randomUUID
@@ -530,9 +532,35 @@ function buildTile(item) {
 }
 
 function makeThumb(file) {
-  if (file.type.startsWith('image/')) return Promise.resolve(URL.createObjectURL(file));
+  if (file.type.startsWith('image/')) return imageThumb(file);
   if (file.type.startsWith('video/')) return videoThumb(file);
   return Promise.resolve(null);
+}
+
+// Shrink before the picture ever reaches the DOM. Handing an <img> the original
+// file means a dozen 12-megapixel photos sit in memory fully decoded, which is
+// hundreds of megabytes on a phone and enough to lose the tab.
+async function imageThumb(file) {
+  try {
+    const bmp = await createImageBitmap(file, {
+      resizeWidth: THUMB_PX,
+      resizeQuality: 'low',
+      // an <img> applies EXIF rotation on its own; a canvas does not, and
+      // iPhone portraits would come out sideways without this
+      imageOrientation: 'from-image'
+    });
+    const c = document.createElement('canvas');
+    c.width = bmp.width;
+    c.height = bmp.height;
+    c.getContext('2d').drawImage(bmp, 0, 0);
+    bmp.close();
+    return await new Promise(done =>
+      c.toBlob(b => done(b ? URL.createObjectURL(b) : null), 'image/jpeg', 0.72)
+    );
+  } catch (e) {
+    // older Safari lacks the resize options — full size, but still a picture
+    return URL.createObjectURL(file);
+  }
 }
 
 // grab a frame a moment in, so the poster isn't a black first frame
@@ -659,6 +687,31 @@ function size(b) {
 
 /* ---------- sending ---------- */
 
+// Guests hit send and put the phone in their pocket. The screen locks, the tab
+// is suspended, and the upload stalls with no way for them to know why.
+let wakeLock = null;
+
+async function keepAwake(on) {
+  try {
+    if (on) {
+      if ('wakeLock' in navigator && !wakeLock) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      }
+    } else if (wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch (e) {
+    // unsupported or refused — the copy in step 03 is the fallback
+  }
+}
+
+// the lock is dropped whenever the tab goes to the background, so take it back
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && sending) keepAwake(true);
+});
+
 sendBtn.addEventListener('click', () => {
   if (sendMode === 'more') { fileInput.click(); return; }
   items.filter(i => i.status === 'failed').forEach(i => {
@@ -676,6 +729,7 @@ async function run() {
   if (!queue.length) return;
 
   sending = true;
+  keepAwake(true);
   refresh();
 
   let cursor = 0;
@@ -686,6 +740,7 @@ async function run() {
   await Promise.all(workers);
 
   sending = false;
+  keepAwake(false);
   refresh();
 }
 
