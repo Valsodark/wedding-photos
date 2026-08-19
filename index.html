@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#16120f">
+<meta name="theme-color" content="#ffffff">
 <title>Снимки от сватбата на Ралица и Илиян</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,15 +11,16 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400..600&family=IBM+Plex+Mono:wght@400;500&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400..600&display=swap">
 <style>
   :root{
-    --ink:#16120f;          /* ground */
-    --ink-lift:#211a16;     /* raised surfaces */
-    --ink-sink:#0e0b09;     /* wells, inputs */
-    --edge:#382e27;         /* hairlines */
-    --edge-lit:#54443a;
-    --paper:#f4ece1;        /* high-emphasis text */
-    --dim:#9c8a7c;          /* secondary text */
-    --safelight:#e8a33d;    /* the one accent */
-    --err:#e0705c;
+    --paper:#ffffff;        /* ground */
+    --surface:#f4f6fc;      /* raised: wells, picker, tiles */
+    --edge:#dde2f0;         /* hairlines */
+    --edge-strong:#b6c0da;
+    --ink:#101736;          /* text */
+    --dim:#5b6486;          /* secondary text */
+    --royal:#2340c4;        /* every interactive thing */
+    --royal-deep:#17309e;
+    --brass:#8d651a;        /* the couple's own colour, never a control */
+    --err:#c23b2d;
 
     /* fallbacks picked for Cyrillic coverage, not just for shape */
     --serif:'Literata',Georgia,'Times New Roman',serif;
@@ -33,13 +34,13 @@
   html{-webkit-text-size-adjust:100%}
   body{
     margin:0;
-    background:var(--ink);
-    color:var(--paper);
+    background:var(--paper);
+    color:var(--ink);
     font-family:var(--sans);
     font-size:16px;
     line-height:1.5;
-    /* one low safelight in the corner, so the dark isn't flat */
-    background-image:radial-gradient(120% 80% at 100% 0%, rgba(232,163,61,.09), transparent 60%);
+    /* one cool wash in the corner, so the white isn't flat */
+    background-image:radial-gradient(120% 80% at 100% 0%, rgba(35,64,196,.07), transparent 62%);
     background-attachment:fixed;
     min-height:100vh;
   }
@@ -58,7 +59,7 @@
     font-size:.7rem;
     letter-spacing:.16em;
     text-transform:uppercase;
-    color:var(--safelight);
+    color:var(--brass);
     margin:0 0 20px;
   }
   h1{
@@ -97,9 +98,9 @@
     flex:none;
     font-family:var(--mono);
     font-size:.72rem;
-    font-weight:400;
+    font-weight:500;
     letter-spacing:.1em;
-    color:var(--safelight);
+    color:var(--royal);
   }
 
   /* ---------- fields ---------- */
@@ -121,26 +122,31 @@
   input[type=text]{
     width:100%;
     padding:14px 16px;
-    background:var(--ink-sink);
+    background:var(--surface);
     border:1px solid var(--edge);
     border-radius:var(--r);
-    color:var(--paper);
+    color:var(--ink);
     font-family:var(--sans);
     font-size:1rem;
-    transition:border-color .15s,background .15s;
+    transition:border-color .15s,background .15s,box-shadow .15s;
   }
-  input[type=text]::placeholder{color:#6d5e53}
-  input[type=text]:hover{border-color:var(--edge-lit)}
-  input[type=text]:focus{outline:none;border-color:var(--safelight);background:#120e0b}
+  input[type=text]::placeholder{color:#98a0bb}
+  input[type=text]:hover{border-color:var(--edge-strong)}
+  input[type=text]:focus{
+    outline:none;
+    border-color:var(--royal);
+    background:var(--paper);
+    box-shadow:0 0 0 3px rgba(35,64,196,.14);
+  }
 
   /* ---------- drop zone ---------- */
   .drop{
     display:block;
     width:100%;
-    border:1px dashed var(--edge-lit);
+    border:1px dashed var(--edge-strong);
     border-radius:var(--r);
-    background:var(--ink-lift);
-    color:var(--paper);
+    background:var(--surface);
+    color:var(--ink);
     padding:34px 20px;
     text-align:center;
     cursor:pointer;
@@ -148,26 +154,26 @@
     font-size:1rem;
     transition:border-color .15s,background .15s,transform .1s;
   }
-  .drop:hover{border-color:var(--safelight);background:#28201a}
+  .drop:hover{border-color:var(--royal);background:#edf1fb}
   .drop:active{transform:scale(.994)}
-  .drop.drag{border-color:var(--safelight);background:#2c231b;border-style:solid}
+  .drop.drag{border-color:var(--royal);background:#e5ebfa;border-style:solid}
   .drop .aperture{
     display:block;
     width:30px;height:30px;
     margin:0 auto 12px;
-    border:1.5px solid var(--safelight);
+    border:1.5px solid var(--royal);
     border-radius:50%;
     position:relative;
   }
   .drop .aperture::after{
     content:'';position:absolute;inset:6px;
     border-radius:50%;
-    background:var(--safelight);
-    opacity:.28;
+    background:var(--royal);
+    opacity:.3;
   }
   .drop b{font-weight:600;display:block}
   .drop span.sub{display:block;color:var(--dim);font-size:.86rem;margin-top:4px}
-  .drop:focus-visible{outline:2px solid var(--safelight);outline-offset:3px}
+  .drop:focus-visible{outline:2px solid var(--royal);outline-offset:3px}
   /* once the sheet has photos on it, the picker steps back */
   .drop.compact{padding:14px 20px}
   .drop.compact .aperture,.drop.compact .sub{display:none}
@@ -191,7 +197,7 @@
     margin-bottom:14px;
     border-bottom:1px solid var(--edge);
   }
-  .rail .count{color:var(--paper);letter-spacing:.08em}
+  .rail .count{color:var(--ink);letter-spacing:.08em}
 
   .grid{
     display:grid;
@@ -206,7 +212,7 @@
     aspect-ratio:1;
     border-radius:8px;
     overflow:hidden;
-    background:var(--ink-sink);
+    background:var(--surface);
     border:1px solid var(--edge);
   }
   .tile img,.tile .ph{
@@ -215,8 +221,8 @@
     object-fit:cover;
     display:block;
   }
-  /* undeveloped layer */
-  .tile .base{filter:grayscale(1) brightness(.42)}
+  /* undeveloped: on a white ground the photo fades out rather than darkens */
+  .tile .base{filter:grayscale(1);opacity:.26}
   /* developed layer, revealed bottom-up as the file goes up */
   .tile .lit{
     clip-path:inset(100% 0 0 0);
@@ -224,27 +230,31 @@
   }
   .tile .ph{
     display:grid;place-items:center;
-    color:var(--edge-lit);
+    color:var(--edge-strong);
     font-family:var(--mono);
     font-size:1.5rem;
   }
 
+  /* the number sits on its own chip so it reads on a pale tile and on a
+     finished photo alike */
   .tile .frame{
-    position:absolute;top:5px;left:6px;
+    position:absolute;top:5px;left:5px;
+    padding:1px 5px;
+    border-radius:5px;
+    background:rgba(255,255,255,.88);
+    color:var(--ink);
     font-family:var(--mono);
-    font-size:.62rem;
-    color:var(--paper);
-    text-shadow:0 1px 3px rgba(0,0,0,.9);
+    font-size:.6rem;
     letter-spacing:.05em;
   }
   .tile .bar{
     position:absolute;left:0;right:0;bottom:0;
-    height:3px;
-    background:rgba(0,0,0,.5);
+    height:4px;
+    background:rgba(255,255,255,.8);
   }
   .tile .bar i{
     display:block;height:100%;width:0;
-    background:var(--safelight);
+    background:var(--royal);
     transition:width .25s linear;
   }
   .tile.done .bar{display:none}
@@ -253,15 +263,16 @@
     position:absolute;top:4px;right:4px;
     width:24px;height:24px;
     border:none;border-radius:50%;
-    background:rgba(14,11,9,.78);
-    color:var(--paper);
+    background:rgba(255,255,255,.92);
+    color:var(--ink);
     font-size:14px;line-height:1;
     cursor:pointer;
     display:grid;place-items:center;
-    transition:background .15s;
+    box-shadow:0 1px 3px rgba(16,23,54,.22);
+    transition:background .15s,color .15s;
   }
   .tile .x:hover{background:var(--err);color:#fff}
-  .tile .x:focus-visible{outline:2px solid var(--safelight);outline-offset:1px}
+  .tile .x:focus-visible{outline:2px solid var(--royal);outline-offset:1px}
   .tile.done .x,.tile.sending .x{display:none}
 
   .tile .badge{
@@ -269,13 +280,13 @@
     width:19px;height:19px;border-radius:50%;
     display:none;place-items:center;
     font-size:11px;line-height:1;
-    background:var(--safelight);color:var(--ink);
-    box-shadow:0 1px 4px rgba(0,0,0,.6);
+    background:var(--brass);color:#fff;
+    box-shadow:0 1px 4px rgba(16,23,54,.3);
   }
   .tile.done .badge{display:grid}
 
   .tile.failed{border-color:var(--err)}
-  .tile.failed .base{filter:grayscale(1) brightness(.28)}
+  .tile.failed .base{filter:grayscale(1);opacity:.14}
   .tile .retry{
     position:absolute;left:0;right:0;bottom:0;
     display:none;
@@ -302,7 +313,9 @@
     position:fixed;
     left:0;right:0;bottom:0;
     padding:16px 20px calc(16px + env(safe-area-inset-bottom));
-    background:linear-gradient(to top,var(--ink) 62%,rgba(22,18,15,0));
+    background:var(--paper);
+    border-top:1px solid var(--edge);
+    box-shadow:0 -6px 20px rgba(16,23,54,.06);
   }
   .actions[hidden]{display:none}
   .actions-inner{max-width:620px;margin:0 auto}
@@ -314,24 +327,31 @@
     margin:0 0 10px;
     min-height:1em;
   }
-  .totals .ok{color:var(--safelight)}
+  .totals .ok{color:var(--brass)}
   .totals .bad{color:var(--err)}
 
   button.send{
     width:100%;
     padding:16px;
-    background:var(--safelight);
-    color:#1a1207;
+    background:var(--royal);
+    color:#fff;
     border:none;border-radius:var(--r);
     font-family:var(--sans);
     font-size:1.02rem;font-weight:600;
     cursor:pointer;
     transition:background .15s,transform .1s;
   }
-  button.send:hover:not(:disabled){background:#f2b357}
+  button.send:hover:not(:disabled){background:var(--royal-deep)}
   button.send:active:not(:disabled){transform:scale(.99)}
-  button.send:disabled{background:var(--ink-lift);color:#6d5e53;cursor:not-allowed}
-  button.send:focus-visible{outline:2px solid var(--paper);outline-offset:3px}
+  button.send:disabled{background:var(--surface);color:var(--dim);cursor:not-allowed}
+  /* while sending, the button is the progress readout, so it has to stay
+     legible rather than fade out the way a dead control should */
+  body.is-sending button.send:disabled{
+    background:var(--royal);
+    color:#fff;
+    cursor:progress;
+  }
+  button.send:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important}
@@ -634,6 +654,7 @@ function refresh() {
   sheet.hidden = total === 0 && !grid.querySelector('.too-big');
   actions.hidden = total === 0;
   document.body.classList.toggle('staged', total > 0);
+  document.body.classList.toggle('is-sending', sending);
   drop.classList.toggle('compact', total > 0);
   countEl.textContent = String(total).padStart(2, '0');
 
