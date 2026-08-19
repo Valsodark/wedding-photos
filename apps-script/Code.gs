@@ -9,8 +9,8 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
 
     var decoded = Utilities.base64Decode(data.fileData);
-    var guest = clean(data.guestName);
-    var safeName = (guest ? guest + '_' : '') + clean(data.fileName);
+    var guest = clean(data.guestName, '');
+    var safeName = (guest ? guest + '_' : '') + clean(data.fileName, 'файл');
     var blob = Utilities.newBlob(decoded, data.mimeType, safeName);
     var file = folder.createFile(blob);
 
@@ -32,12 +32,15 @@ function doPost(e) {
 // which defeats the point of asking for one.
 var FORBIDDEN = '/\\:*?"<>|';
 
-function clean(s) {
+// The fallback is a parameter, not a constant: a filename that cleans away to
+// nothing needs a stand-in, but a guest who left the name blank must stay blank
+// or every file would be prefixed with the stand-in.
+function clean(s, fallback) {
   var out = '';
   s = String(s == null ? '' : s);
   for (var i = 0; i < s.length; i++) {
     var ch = s.charAt(i);
     if (ch.charCodeAt(0) > 31 && FORBIDDEN.indexOf(ch) === -1) out += ch;
   }
-  return out.replace(/\s+/g, ' ').trim().slice(0, 80);
+  return out.replace(/\s+/g, ' ').trim().slice(0, 80) || fallback;
 }

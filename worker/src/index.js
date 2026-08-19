@@ -27,7 +27,14 @@ export default {
       if (!/^(image|video)\//.test(type)) {
         return reply({ success: false, error: 'Разрешени са само снимки и видео' }, 415);
       }
-      if (Number(request.headers.get('content-length') || 0) > MAX_BYTES) {
+      // A missing header used to read as 0 and a malformed one as NaN, and
+      // neither is greater than the cap, so both walked straight past this.
+      // Require a real length instead of trusting the comparison to fail safe.
+      const length = Number(request.headers.get('content-length'));
+      if (!Number.isFinite(length) || length <= 0) {
+        return reply({ success: false, error: 'Липсва размер на файла' }, 411);
+      }
+      if (length > MAX_BYTES) {
         return reply({ success: false, error: 'Файлът е твърде голям' }, 413);
       }
 
@@ -40,7 +47,7 @@ export default {
       // fully but the response is lost on the way back.
       const uploadId = readHeader(request, 'x-upload-id') || crypto.randomUUID();
 
-      const key = `${clean(guest)}/${uploadId}__${clean(name)}`;
+      const key = `${clean(guest, 'Гост')}/${uploadId}__${clean(name, 'снимка')}`;
 
       await env.PHOTOS.put(key, request.body, {
         httpMetadata: { contentType: type },
@@ -66,12 +73,12 @@ function readHeader(request, name) {
 // or a later download.
 const FORBIDDEN = '/\\:*?"<>|';
 
-function clean(s) {
+function clean(s, fallback) {
   const kept = String(s)
     .normalize('NFC')
     .split('')
     .filter(ch => ch.charCodeAt(0) > 31 && FORBIDDEN.indexOf(ch) === -1)
     .join('');
 
-  return kept.replace(/\s+/g, ' ').trim().slice(0, 80) || 'файл';
+  return kept.replace(/\s+/g, ' ').trim().slice(0, 80) || fallback;
 }

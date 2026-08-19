@@ -459,28 +459,66 @@ fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInpu
 }));
 drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
 
+// Some Android pickers hand back a File with an empty type, and a dragged file
+// often has none either. Guessing from the extension keeps those uploads alive;
+// without it the Worker answers 415 and the guest watches three doomed retries.
+const EXT_TYPES = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
+  webp: 'image/webp', heic: 'image/heic', heif: 'image/heif', avif: 'image/avif',
+  mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
+  '3gp': 'video/3gpp', avi: 'video/x-msvideo', mkv: 'video/x-matroska', webm: 'video/webm'
+};
+
+function mimeOf(file) {
+  if (file.type) return file.type;
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  return EXT_TYPES[ext] || '';
+}
+
 function addFiles(list) {
-  const rejected = [];
+  const tooBig = [];
+  const wrongKind = [];
+
   for (const file of list) {
-    if (file.size > MAX_MB * 1024 * 1024) { rejected.push(file.name); continue; }
+    const mime = mimeOf(file);
+    // reject here rather than let the Worker refuse it three retries later
+    if (!/^(image|video)\//.test(mime)) { wrongKind.push(file.name); continue; }
+    if (file.size > MAX_MB * 1024 * 1024) { tooBig.push(file.name); continue; }
     // same name and size twice means the picker was opened twice, not two photos
     if (items.some(i => i.file.name === file.name && i.file.size === file.size)) continue;
     // uploadId is minted once and reused on every retry, so a retry overwrites
     // the earlier attempt in R2 instead of leaving a duplicate behind
-    const item = { id: nextId++, uploadId: uid(), file, status: 'queued', progress: 0, tries: 0 };
+    const item = { id: nextId++, uploadId: uid(), file, mime, status: 'queued', progress: 0, tries: 0 };
     items.push(item);
     buildTile(item);
   }
-  if (rejected.length) showTooBig(rejected);
+
+  showRejects(tooBig, wrongKind);
   refresh();
 }
 
-function showTooBig(names) {
-  let p = grid.querySelector('.too-big');
-  if (!p) { p = document.createElement('li'); p.className = 'too-big'; grid.appendChild(p); }
-  p.textContent = names.length === 1
-    ? `„${names[0]}“ е над ${MAX_MB}MB и не може да се изпрати. Изпратете го по друг начин.`
-    : `${files(names.length)} са над ${MAX_MB}MB и не могат да се изпратят. Изпратете ги по друг начин.`;
+function showRejects(tooBig, wrongKind) {
+  // rebuilt on every pick, so the notice always describes the latest attempt
+  const old = grid.querySelector('.too-big');
+  if (old) old.remove();
+  if (!tooBig.length && !wrongKind.length) return;
+
+  const lines = [];
+  if (tooBig.length) {
+    lines.push(tooBig.length === 1
+      ? `„${tooBig[0]}“ е над ${MAX_MB}MB и не може да се изпрати.`
+      : `${files(tooBig.length)} са над ${MAX_MB}MB и не могат да се изпратят.`);
+  }
+  if (wrongKind.length) {
+    lines.push(wrongKind.length === 1
+      ? `„${wrongKind[0]}“ не е снимка или видео.`
+      : `${files(wrongKind.length)} не са снимки или видео.`);
+  }
+
+  const p = document.createElement('li');
+  p.className = 'too-big';
+  p.textContent = lines.join(' ');
+  grid.appendChild(p);
 }
 
 /* ---------- tiles ---------- */
@@ -537,13 +575,18 @@ function buildTile(item) {
   item.refs = { base, lit, frame, bar, fill };
   li.setAttribute('aria-label', item.file.name);
 
-  makeThumb(item.file).then(url => {
+  makeThumb(item.file, item.mime).then(url => {
+    // the guest may have removed this tile while the thumbnail was being made
+    if (!items.includes(item)) {
+      if (url) URL.revokeObjectURL(url);
+      return;
+    }
     if (!url) {
       base.remove();
       lit.remove();
       const ph = document.createElement('span');
       ph.className = 'ph';
-      ph.textContent = item.file.type.startsWith('video') ? '▶' : '▨';
+      ph.textContent = item.mime.startsWith('video') ? '▶' : '▨';
       li.prepend(ph);
       item.refs.lit = null;
       return;
@@ -554,9 +597,9 @@ function buildTile(item) {
   });
 }
 
-function makeThumb(file) {
-  if (file.type.startsWith('image/')) return imageThumb(file);
-  if (file.type.startsWith('video/')) return videoThumb(file);
+function makeThumb(file, mime) {
+  if (mime.startsWith('image/')) return imageThumb(file);
+  if (mime.startsWith('video/')) return videoThumb(file);
   return Promise.resolve(null);
 }
 
@@ -689,17 +732,21 @@ function refresh() {
 
   dropLabel.textContent = total ? 'Добавете още снимки или видео' : 'Изберете снимки или видео';
 
-  if (!sending) {
-    if (failed) {
-      totalsRight.className = 'bad';
-      totalsRight.textContent = failed === 1 ? '1 не се изпрати' : `${failed} не се изпратиха`;
-    } else if (done && !queued) {
-      totalsRight.className = 'ok';
-      totalsRight.textContent = 'Готово — благодарим ви!';
-    } else {
-      totalsRight.className = '';
-      totalsRight.textContent = '';
-    }
+  // always updated: skipping this while sending left the previous run's
+  // "Готово" or error sitting there, and kept the live region silent through
+  // the whole upload
+  if (sending) {
+    totalsRight.className = '';
+    totalsRight.textContent = `${done} от ${total} готови`;
+  } else if (failed) {
+    totalsRight.className = 'bad';
+    totalsRight.textContent = failed === 1 ? '1 не се изпрати' : `${failed} не се изпратиха`;
+  } else if (done && !queued) {
+    totalsRight.className = 'ok';
+    totalsRight.textContent = 'Готово — благодарим ви!';
+  } else {
+    totalsRight.className = '';
+    totalsRight.textContent = '';
   }
 }
 
@@ -714,17 +761,28 @@ function size(b) {
 // Guests hit send and put the phone in their pocket. The screen locks, the tab
 // is suspended, and the upload stalls with no way for them to know why.
 let wakeLock = null;
+let wakeLockPending = false;
 
 async function keepAwake(on) {
   try {
     if (on) {
-      if ('wakeLock' in navigator && !wakeLock) {
+      // the pending flag matters: run() and visibilitychange can both ask at
+      // once, and two awaited requests would leave the first sentinel held for
+      // the rest of the visit
+      if (!('wakeLock' in navigator) || wakeLock || wakeLockPending) return;
+      wakeLockPending = true;
+      try {
         wakeLock = await navigator.wakeLock.request('screen');
-        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      } finally {
+        wakeLockPending = false;
       }
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+      // the send may have finished while the request was in flight
+      if (!sending) await keepAwake(false);
     } else if (wakeLock) {
-      await wakeLock.release();
+      const held = wakeLock;
       wakeLock = null;
+      await held.release();
     }
   } catch (e) {
     // unsupported or refused — the copy in step 03 is the fallback
@@ -769,6 +827,10 @@ async function run() {
 }
 
 async function send(item) {
+  // run() took a snapshot of the queue, so a photo the guest removed while it
+  // was waiting is still in that snapshot. Without this it uploads anyway.
+  if (!items.includes(item)) return;
+
   item.status = 'sending';
   item.progress = 0;
   paint(item);
@@ -804,7 +866,7 @@ function post(item, onProgress) {
     const stop = () => clearInterval(watchdog);
 
     xhr.open('PUT', UPLOAD_URL, true);
-    xhr.setRequestHeader('Content-Type', item.file.type || 'application/octet-stream');
+    xhr.setRequestHeader('Content-Type', item.mime);
     // header values are Latin-1 only, so Cyrillic has to be percent-encoded
     xhr.setRequestHeader('x-guest', encodeURIComponent(guestNameEl.value.trim() || 'Гост'));
     xhr.setRequestHeader('x-filename', encodeURIComponent(item.file.name));
