@@ -1,0 +1,5 @@
+# wrangler build + auth cache (holds account id and account name)
+.wrangler/
+node_modules/
+.env
+.dev.vars
