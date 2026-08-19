@@ -390,7 +390,7 @@
 <script>
 // Cloudflare Worker that streams each file into the R2 bucket.
 // Deploy worker/ first, then paste its URL here (see README).
-const UPLOAD_URL = 'PASTE_YOUR_WORKER_URL_HERE';
+const UPLOAD_URL = 'https://wedding-photos.valsodark.workers.dev';
 
 // Workers cap a request body at 100MB. Files go up as-is now — no base64 —
 // so this is the real file size rather than a third less.
