@@ -21,7 +21,7 @@ Static page → Google Apps Script → your Drive folder. No server, no cost.
 
 4. Test: open the page, pick a name + photo, upload, check Drive folder.
 
-5. **Make it yours**: edit the eyebrow line in `index.html` (marked `<!-- EDIT: your names and date -->`) and the headline below it.
+5. **Make it yours**: the page is in Bulgarian. Names live in the `.eyebrow` line near the top of the `<body>`, headline in the `<h1>` under it.
 
 ## Notes
 
@@ -30,5 +30,6 @@ Static page → Google Apps Script → your Drive folder. No server, no cost.
 - Each tile shows progress by filling in from the bottom — grey and dim means not sent yet, full colour with a check means it's in the album.
 - A failed file retries itself once, then offers a Retry button on the tile.
 - Guest name gets prefixed to uploaded filename so you know who sent what.
+- Interface text is Bulgarian. Typefaces are Literata / Golos Text / IBM Plex Mono because all three ship Cyrillic — swapping in a Latin-only face silently drops the page to a Georgia fallback.
 - Apps Script caps a request near 50MB and base64 inflates a file ~33%, so the page refuses anything over 32MB up front (`MAX_MB` in `index.html`).
 - Re-deploying the script after edits: Deploy → Manage deployments → edit → New version, or the URL changes.

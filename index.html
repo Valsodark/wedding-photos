@@ -1,13 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="bg">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16120f">
-<title>Leave us a photo</title>
+<title>Снимки от сватбата на Ралица и Илиян</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..700,0..100,0..1;1,9..144,400..700,0..100,0..1&family=Instrument+Sans:wght@400;500;600&display=swap">
+<!-- all three faces carry Cyrillic; Fraunces/Instrument Sans/DM Mono do not -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400..600&family=IBM+Plex+Mono:wght@400;500&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400..600&display=swap">
 <style>
   :root{
     --ink:#16120f;          /* ground */
@@ -20,9 +21,10 @@
     --safelight:#e8a33d;    /* the one accent */
     --err:#e0705c;
 
-    --serif:'Fraunces',Georgia,'Times New Roman',serif;
-    --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
-    --mono:'DM Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    /* fallbacks picked for Cyrillic coverage, not just for shape */
+    --serif:'Literata',Georgia,'Times New Roman',serif;
+    --sans:'Golos Text','Segoe UI',system-ui,-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',Consolas,ui-monospace,monospace;
 
     --r:10px;
   }
@@ -61,23 +63,48 @@
   }
   h1{
     font-family:var(--serif);
-    font-variation-settings:'opsz' 96,'SOFT' 40,'WONK' 1;
+    font-variation-settings:'opsz' 60;
     font-weight:500;
-    font-size:clamp(2.1rem,8vw,3.1rem);
-    line-height:1.04;
-    letter-spacing:-.02em;
+    font-size:clamp(2rem,7.6vw,2.9rem);
+    line-height:1.1;
+    letter-spacing:-.015em;
     margin:0 0 14px;
   }
   h1 em{
     font-style:italic;
-    font-variation-settings:'opsz' 96,'SOFT' 70,'WONK' 1;
+    font-weight:500;
     color:var(--safelight);
   }
   .lede{
     color:var(--dim);
     font-size:1.02rem;
-    margin:0 0 40px;
-    max-width:42ch;
+    margin:0 0 26px;
+    max-width:44ch;
+  }
+
+  /* ---------- what to do: a real sequence, so it is numbered ---------- */
+  .steps{
+    list-style:none;
+    margin:0 0 42px;
+    padding:18px 0 0;
+    border-top:1px solid var(--edge);
+    display:grid;
+    gap:11px;
+  }
+  .steps li{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    color:var(--dim);
+    font-size:.95rem;
+  }
+  .steps b{
+    flex:none;
+    font-family:var(--mono);
+    font-size:.72rem;
+    font-weight:400;
+    letter-spacing:.1em;
+    color:var(--safelight);
   }
 
   /* ---------- fields ---------- */
@@ -319,31 +346,36 @@
 <body>
 
 <div class="wrap">
-  <!-- EDIT: your names and date -->
-  <p class="eyebrow">Our wedding · 2026</p>
+  <p class="eyebrow">Ралица &amp; Илиян</p>
 
-  <h1>You saw things <em>we didn't.</em></h1>
-  <p class="lede">We were a little busy. Send us the photos and video from your camera roll — they go straight into our album.</p>
+  <h1>Вие видяхте <em>повече от нас.</em></h1>
+  <p class="lede">Бяхме малко заети. Изпратете ни снимките и клиповете от телефона си — те отиват директно в общия ни албум.</p>
+
+  <ol class="steps">
+    <li><b>01</b> Напишете името си</li>
+    <li><b>02</b> Изберете снимките от телефона си</li>
+    <li><b>03</b> Натиснете „Изпратете“ и изчакайте снимките да се оцветят</li>
+  </ol>
 
   <div class="field">
-    <label for="guestName">Your name</label>
-    <input type="text" id="guestName" placeholder="Maria" autocomplete="name">
-    <p class="hint">So we know who to thank.</p>
+    <label for="guestName">Вашето име</label>
+    <input type="text" id="guestName" placeholder="Мария" autocomplete="name">
+    <p class="hint">За да знаем на кого да благодарим.</p>
   </div>
 
   <div class="field">
-    <label id="pickLabel">Photos and video</label>
+    <label id="pickLabel">Снимки и видео</label>
     <button type="button" class="drop" id="drop" aria-labelledby="pickLabel">
       <span class="aperture" aria-hidden="true"></span>
-      <b>Add photos or video</b>
-      <span class="sub">Tap to choose, or drag them here</span>
+      <b>Изберете снимки или видео</b>
+      <span class="sub">Натиснете тук, за да ги изберете от телефона си</span>
     </button>
     <input type="file" id="fileInput" multiple accept="image/*,video/*">
   </div>
 
   <section class="sheet" id="sheet" hidden aria-labelledby="sheetLabel">
     <div class="rail">
-      <span id="sheetLabel">Exposures</span>
+      <span id="sheetLabel">Кадри</span>
       <span class="count" id="count">00</span>
     </div>
     <ul class="grid" id="grid"></ul>
@@ -356,7 +388,7 @@
       <span id="totalsLeft"></span>
       <span id="totalsRight" role="status" aria-live="polite"></span>
     </p>
-    <button class="send" id="sendBtn" disabled>Add photos to begin</button>
+    <button class="send" id="sendBtn" disabled>Първо изберете снимки</button>
   </div>
 </div>
 
@@ -380,6 +412,9 @@ let items = [];   // {id, file, status, progress, tries, thumbUrl, el, refs}
 let nextId = 1;
 let sending = false;
 let sendMode = 'busy';   // what the one big button does right now
+
+// Bulgarian counts a masculine noun with its own count form: 1 файл, 2 файла
+const files = n => n === 1 ? '1 файл' : `${n} файла`;
 
 /* ---------- picking ---------- */
 
@@ -414,8 +449,8 @@ function showTooBig(names) {
   let p = grid.querySelector('.too-big');
   if (!p) { p = document.createElement('li'); p.className = 'too-big'; grid.appendChild(p); }
   p.textContent = names.length === 1
-    ? `${names[0]} is over ${MAX_MB}MB and can't be sent. Send that one to us another way.`
-    : `${names.length} files are over ${MAX_MB}MB and can't be sent. Send those to us another way.`;
+    ? `„${names[0]}“ е над ${MAX_MB}MB и не може да се изпрати. Изпратете го по друг начин.`
+    : `${files(names.length)} са над ${MAX_MB}MB и не могат да се изпратят. Изпратете ги по друг начин.`;
 }
 
 /* ---------- tiles ---------- */
@@ -446,13 +481,13 @@ function buildTile(item) {
   x.type = 'button';
   x.className = 'x';
   x.textContent = '×';
-  x.setAttribute('aria-label', `Remove ${item.file.name}`);
+  x.setAttribute('aria-label', `Премахнете ${item.file.name}`);
   x.addEventListener('click', () => removeItem(item));
 
   const retry = document.createElement('button');
   retry.type = 'button';
   retry.className = 'retry';
-  retry.textContent = 'Retry';
+  retry.textContent = 'Отново';
   retry.addEventListener('click', () => {
     item.status = 'queued';
     item.tries = 0;
@@ -546,10 +581,10 @@ function paint(item) {
   const shown = item.status === 'failed' ? 0 : pct;
   if (refs.lit) refs.lit.style.clipPath = `inset(${100 - shown}% 0 0 0)`;
 
-  const state = item.status === 'done' ? 'sent'
-    : item.status === 'failed' ? "didn't send"
-    : item.status === 'sending' ? `${pct} percent sent`
-    : 'ready to send';
+  const state = item.status === 'done' ? 'изпратена'
+    : item.status === 'failed' ? 'не се изпрати'
+    : item.status === 'sending' ? `изпратени ${pct} процента`
+    : 'готова за изпращане';
   el.setAttribute('aria-label', `${item.file.name}, ${state}`);
 }
 
@@ -570,40 +605,40 @@ function refresh() {
   countEl.textContent = String(total).padStart(2, '0');
 
   const bytes = items.reduce((n, i) => n + i.file.size, 0);
-  totalsLeft.textContent = total ? `${total} file${total > 1 ? 's' : ''} · ${size(bytes)}` : '';
+  totalsLeft.textContent = total ? `${files(total)} · ${size(bytes)}` : '';
 
   // one button, always showing the next thing worth doing
   if (sending) {
     sendMode = 'busy';
     sendBtn.disabled = true;
-    sendBtn.textContent = `Sending… ${done} of ${total}`;
+    sendBtn.textContent = `Изпращане… ${done} от ${total}`;
   } else if (failed) {
     sendMode = 'send';
     sendBtn.disabled = false;
-    sendBtn.textContent = `Retry ${failed} photo${failed > 1 ? 's' : ''}`;
+    sendBtn.textContent = 'Опитайте отново';
   } else if (queued) {
     sendMode = 'send';
     sendBtn.disabled = false;
-    sendBtn.textContent = `Send ${queued} photo${queued > 1 ? 's' : ''}`;
+    sendBtn.textContent = `Изпратете ${files(queued)}`;
   } else if (done) {
     sendMode = 'more';
     sendBtn.disabled = false;
-    sendBtn.textContent = 'Add more photos';
+    sendBtn.textContent = 'Добавете още снимки';
   } else {
     sendMode = 'busy';
     sendBtn.disabled = true;
-    sendBtn.textContent = 'Add photos to begin';
+    sendBtn.textContent = 'Първо изберете снимки';
   }
 
-  dropLabel.textContent = total ? 'Add more photos or video' : 'Add photos or video';
+  dropLabel.textContent = total ? 'Добавете още снимки или видео' : 'Изберете снимки или видео';
 
   if (!sending) {
     if (failed) {
       totalsRight.className = 'bad';
-      totalsRight.textContent = `${failed} didn't send`;
+      totalsRight.textContent = failed === 1 ? '1 не се изпрати' : `${failed} не се изпратиха`;
     } else if (done && !queued) {
       totalsRight.className = 'ok';
-      totalsRight.textContent = 'In the album — thank you';
+      totalsRight.textContent = 'Готово — благодарим ви!';
     } else {
       totalsRight.className = '';
       totalsRight.textContent = '';
@@ -678,7 +713,7 @@ function toBase64(item, onProgress) {
     const reader = new FileReader();
     reader.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
     reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = () => reject(new Error("Couldn't read the file"));
+    reader.onerror = () => reject(new Error('Файлът не може да бъде прочетен'));
     reader.readAsDataURL(item.file);
   });
 }
@@ -695,11 +730,11 @@ function post(item, base64, onProgress) {
     xhr.onload = () => {
       let json;
       try { json = JSON.parse(xhr.responseText); }
-      catch (e) { return reject(new Error('The album sent back something unreadable')); }
-      json.success ? resolve(json) : reject(new Error(json.error || 'The album refused the file'));
+      catch (e) { return reject(new Error('Неразбираем отговор от албума')); }
+      json.success ? resolve(json) : reject(new Error(json.error || 'Албумът отказа файла'));
     };
-    xhr.onerror = () => reject(new Error('Lost the connection'));
-    xhr.ontimeout = () => reject(new Error('Took too long'));
+    xhr.onerror = () => reject(new Error('Връзката прекъсна'));
+    xhr.ontimeout = () => reject(new Error('Отне твърде дълго'));
 
     xhr.send(JSON.stringify({
       guestName: guestNameEl.value.trim(),
