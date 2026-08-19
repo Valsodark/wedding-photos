@@ -1,0 +1,8 @@
+name = "wedding-photos"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Bucket must already exist: wrangler r2 bucket create wedding-photos
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "wedding-photos"

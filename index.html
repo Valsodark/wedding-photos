@@ -388,14 +388,22 @@
 </div>
 
 <script>
-// Apps Script web app URL (Deploy > New deployment > Web app)
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzLZH38X83eqsPZnz2SByfbmhK96lCQ63g9rbF7lFPQtO_YGIZ1Reyg8uL3jXe9P_NioQ/exec';
+// Cloudflare Worker that streams each file into the R2 bucket.
+// Deploy worker/ first, then paste its URL here (see README).
+const UPLOAD_URL = 'PASTE_YOUR_WORKER_URL_HERE';
 
-// Apps Script caps a request near 50MB and base64 inflates a file by ~33%,
-// so anything past this will not survive the trip.
-const MAX_MB = 32;
-// Two at a time: quicker than one, gentler on venue wifi than a dozen.
-const CONCURRENCY = 2;
+// Workers cap a request body at 100MB. Files go up as-is now — no base64 —
+// so this is the real file size rather than a third less.
+const MAX_MB = 95;
+// One at a time. Two was no faster on venue wifi and doubled peak memory.
+const CONCURRENCY = 1;
+// Give up on a file only when the bytes actually stop moving.
+const STALL_MS = 90000;
+
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const uid = () => (crypto.randomUUID
+  ? crypto.randomUUID()
+  : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
 const $ = id => document.getElementById(id);
 const drop = $('drop'), fileInput = $('fileInput'), grid = $('grid'), sheet = $('sheet');
@@ -432,7 +440,9 @@ function addFiles(list) {
     if (file.size > MAX_MB * 1024 * 1024) { rejected.push(file.name); continue; }
     // same name and size twice means the picker was opened twice, not two photos
     if (items.some(i => i.file.name === file.name && i.file.size === file.size)) continue;
-    const item = { id: nextId++, file, status: 'queued', progress: 0, tries: 0 };
+    // uploadId is minted once and reused on every retry, so a retry overwrites
+    // the earlier attempt in R2 instead of leaving a duplicate behind
+    const item = { id: nextId++, uploadId: uid(), file, status: 'queued', progress: 0, tries: 0 };
     items.push(item);
     buildTile(item);
   }
@@ -685,15 +695,19 @@ async function send(item) {
   paint(item);
 
   try {
-    // reading the file is the first sliver of the bar, the upload is the rest
-    const base64 = await toBase64(item, p => { item.progress = p * 0.12; paint(item); });
-    await post(item, base64, p => { item.progress = 0.12 + p * 0.88; paint(item); });
+    // the file goes up as-is, so the bar is pure upload progress now
+    await post(item, p => { item.progress = p; paint(item); });
     item.status = 'done';
     item.progress = 1;
   } catch (err) {
     item.tries++;
-    if (item.tries < 2) {          // one silent retry, venue wifi drops packets
+    if (item.tries < 3) {
+      // back off before retrying — an instant retry during a burst of guests
+      // just adds to the burst, and venue wifi usually recovers within seconds
       item.status = 'queued';
+      item.progress = 0;
+      paint(item);
+      await wait(1000 * 2 ** item.tries + Math.random() * 800);
       return send(item);
     }
     item.status = 'failed';
@@ -703,40 +717,47 @@ async function send(item) {
   refresh();
 }
 
-function toBase64(item, onProgress) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = () => reject(new Error('Файлът не може да бъде прочетен'));
-    reader.readAsDataURL(item.file);
-  });
-}
-
-function post(item, base64, onProgress) {
+function post(item, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', SCRIPT_URL, true);
-    // text/plain keeps this a simple request, so Apps Script never sees a CORS preflight
-    xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
-    xhr.timeout = 240000;
+    let lastMoved = Date.now();
+    let watchdog;
+    const stop = () => clearInterval(watchdog);
 
-    xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    xhr.open('PUT', UPLOAD_URL, true);
+    xhr.setRequestHeader('Content-Type', item.file.type || 'application/octet-stream');
+    // header values are Latin-1 only, so Cyrillic has to be percent-encoded
+    xhr.setRequestHeader('x-guest', encodeURIComponent(guestNameEl.value.trim() || 'Гост'));
+    xhr.setRequestHeader('x-filename', encodeURIComponent(item.file.name));
+    xhr.setRequestHeader('x-upload-id', item.uploadId);
+
+    xhr.upload.onprogress = e => {
+      lastMoved = Date.now();
+      if (e.lengthComputable) onProgress(e.loaded / e.total);
+    };
+
     xhr.onload = () => {
+      stop();
       let json;
       try { json = JSON.parse(xhr.responseText); }
-      catch (e) { return reject(new Error('Неразбираем отговор от албума')); }
-      json.success ? resolve(json) : reject(new Error(json.error || 'Албумът отказа файла'));
+      catch (e) {
+        // a captive portal answers with its own login page instead of our JSON
+        return reject(new Error(/<html/i.test(xhr.responseText)
+          ? 'Мрежата иска вход. Опитайте с мобилни данни.'
+          : 'Неразбираем отговор от сървъра'));
+      }
+      json.success ? resolve(json) : reject(new Error(json.error || 'Файлът беше отказан'));
     };
-    xhr.onerror = () => reject(new Error('Връзката прекъсна'));
-    xhr.ontimeout = () => reject(new Error('Отне твърде дълго'));
+    xhr.onerror = () => { stop(); reject(new Error('Връзката прекъсна')); };
+    xhr.onabort = () => { stop(); reject(new Error('Качването спря')); };
 
-    xhr.send(JSON.stringify({
-      guestName: guestNameEl.value.trim(),
-      fileName: item.file.name,
-      mimeType: item.file.type || 'application/octet-stream',
-      fileData: base64
-    }));
+    // No fixed deadline: a big video on slow wifi is fine as long as bytes keep
+    // moving. Only a genuine stall ends it.
+    watchdog = setInterval(() => {
+      if (Date.now() - lastMoved > STALL_MS) xhr.abort();
+    }, 5000);
+
+    xhr.send(item.file);
   });
 }
 
@@ -744,9 +765,9 @@ window.addEventListener('beforeunload', e => {
   if (sending) { e.preventDefault(); e.returnValue = ''; }
 });
 
-if (SCRIPT_URL.includes('PASTE_YOUR')) {
+if (UPLOAD_URL.includes('PASTE_YOUR')) {
   totalsRight.className = 'bad';
-  totalsRight.textContent = 'SCRIPT_URL not set in index.html';
+  totalsRight.textContent = 'UPLOAD_URL not set in index.html';
 }
 </script>
 </body>

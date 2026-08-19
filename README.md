@@ -1,35 +1,107 @@
 # Wedding Photo Upload Site
 
-Static page → Google Apps Script → your Drive folder. No server, no cost.
+Static page → Cloudflare Worker → R2 bucket. Guests open a link, pick photos, and
+each one streams straight into object storage.
+
+The page is in Bulgarian.
 
 ## Setup
 
-1. **Drive folder**: create folder in Drive (e.g. "Wedding Photos"). Open it, copy the ID from URL: `drive.google.com/drive/folders/<THIS_PART>`.
+You need a Cloudflare account (free) and Node installed.
 
-2. **Apps Script backend**:
-   - Go to [script.google.com](https://script.google.com) → New project.
-   - Delete default code, paste contents of `apps-script/Code.gs`.
-   - Replace `FOLDER_ID` value with the ID from step 1.
-   - Deploy → New deployment → type: **Web app**.
-     - Execute as: **Me**
-     - Who has access: **Anyone**
-   - Authorize when prompted. Copy the **Web app URL**.
+1. **Install wrangler and log in**
 
-3. **Frontend**:
-   - Open `index.html`, replace `SCRIPT_URL` with the Web app URL from step 2.
-   - Host it anywhere static: GitHub Pages, Netlify (drag-drop the folder), Vercel, or even just double-click to open locally — Apps Script accepts cross-origin POSTs regardless of origin.
+   ```
+   npm install -g wrangler
+   wrangler login
+   ```
 
-4. Test: open the page, pick a name + photo, upload, check Drive folder.
+2. **Create the bucket**
 
-5. **Make it yours**: the page is in Bulgarian. Names live in the `.eyebrow` line near the top of the `<body>`, headline in the `<h1>` under it.
+   ```
+   wrangler r2 bucket create wedding-photos
+   ```
+
+   If you name it something else, change `bucket_name` in `worker/wrangler.toml` to match.
+
+3. **Deploy the Worker**
+
+   ```
+   cd worker
+   wrangler deploy
+   ```
+
+   It prints a URL like `https://wedding-photos.<your-subdomain>.workers.dev`. Copy it.
+
+4. **Point the page at it**
+
+   Open `index.html` and replace `PASTE_YOUR_WORKER_URL_HERE` in `UPLOAD_URL` with that URL.
+
+5. **Host the page**
+
+   GitHub Pages (Settings → Pages → deploy from `main`, root), or drag the folder onto
+   [Netlify Drop](https://app.netlify.com/drop). The Worker allows any origin, so it
+   works from anywhere, including a local file.
+
+6. **Test**: open the page, type a name, pick a photo, send. Then check it landed:
+
+   ```
+   wrangler r2 object get wedding-photos --remote --prefix ""
+   ```
+
+7. **Make it yours**: names live in the `.eyebrow` line near the top of the `<body>`,
+   headline in the `<h1>` under it.
+
+## Getting the photos out afterwards
+
+R2 is object storage, not a folder you open in a browser. Easiest is
+[rclone](https://rclone.org):
+
+```
+rclone config          # new remote, type: s3, provider: Cloudflare
+rclone copy r2:wedding-photos ./photos -P
+```
+
+Files are laid out as `<guest name>/<upload id>__<original filename>`, so everything
+one person sent is grouped together.
 
 ## Notes
 
-- Each file uploads as its own request (no batching) — more reliable on flaky wedding wifi, and gives every photo its own progress bar. Two go up at a time.
-- Progress is real, not faked: uploads go through `XMLHttpRequest` so `upload.onprogress` is available. `fetch` can't report upload progress.
-- Each tile shows progress by filling in from the bottom — grey and dim means not sent yet, full colour with a check means it's in the album.
-- A failed file retries itself once, then offers a Retry button on the tile.
-- Guest name gets prefixed to uploaded filename so you know who sent what.
-- Interface text is Bulgarian. Typefaces are Literata / Golos Text / IBM Plex Mono because all three ship Cyrillic — swapping in a Latin-only face silently drops the page to a Georgia fallback.
-- Apps Script caps a request near 50MB and base64 inflates a file ~33%, so the page refuses anything over 32MB up front (`MAX_MB` in `index.html`).
-- Re-deploying the script after edits: Deploy → Manage deployments → edit → New version, or the URL changes.
+- One file per request, one at a time. Slower in theory, but on venue wifi it beats
+  parallel uploads and keeps peak memory on the phone low.
+- Files go up as-is. The old Apps Script backend needed base64, which inflated every
+  file by a third and built the whole thing as a string in memory first.
+- Progress is real: uploads go through `XMLHttpRequest` so `upload.onprogress` is
+  available. `fetch` cannot report upload progress at all.
+- Each tile shows progress by filling in from the bottom — grey means not sent, full
+  colour with a check means it's in the bucket.
+- A failed file retries twice with backoff, then offers a Retry button. Each file
+  carries an `uploadId` that stays the same across retries, and the Worker writes to a
+  key built from it, so a retry overwrites the earlier attempt instead of leaving a
+  duplicate. That matters because a file can upload completely and still fail if the
+  response is lost on the way back.
+- There is no upload deadline. A watchdog aborts only when bytes actually stop moving
+  for 90 seconds, so a long video on slow wifi is fine.
+- Size and MIME type are checked in the Worker, not just the browser. The endpoint is
+  public, so the browser's word cannot be what decides what lands in the bucket.
+  Limit is 95MB — Workers cap a request body at 100MB.
+- Guest names keep their Cyrillic. An earlier version sanitised filenames with a
+  Latin-only whitelist, which silently erased every Bulgarian name.
+- Typefaces are Literata / Golos Text / IBM Plex Mono because all three ship Cyrillic.
+  Swapping in a Latin-only face drops the page to a Georgia fallback.
+
+## Cost
+
+R2 gives 10GB storage free, then about $0.015/GB/month, with no egress charge. A
+wedding producing 30GB costs roughly $0.30/month to keep. Workers free tier is
+100,000 requests/day; a wedding uses a few thousand.
+
+Confirm current prices on Cloudflare's pricing page before relying on these numbers.
+
+## Previous backend
+
+`apps-script/Code.gs` is the earlier Google Drive backend, kept as a fallback. It works
+but has real limits for this use: Drive's 15GB is shared with Gmail, Apps Script allows
+only ~30 simultaneous executions (about 15 guests uploading at once), and base64 caps
+files near 32MB. If you use it, fix the filename sanitiser first — its Latin-only
+whitelist deletes Cyrillic guest names entirely.
